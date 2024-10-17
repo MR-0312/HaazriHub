@@ -60,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _laborers.removeAt(index);
               });
             },
-            onUpdate: () {
+            onUpdate: () {  // Callback to update UI when salary changes
               setState(() {});
             },
           );
@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
 class LaborCard extends StatelessWidget {
   final Labor labor;
   final VoidCallback onDelete;
-  final VoidCallback onUpdate;
+  final VoidCallback onUpdate; // Add callback for updates
 
   const LaborCard({Key? key, required this.labor, required this.onDelete, required this.onUpdate})
       : super(key: key);
@@ -103,7 +103,7 @@ class LaborCard extends StatelessWidget {
           Navigator.of(context).push(MaterialPageRoute(
             builder: (context) => LaborDetailScreen(
               labor: labor,
-              onUpdate: onUpdate,
+              onUpdate: onUpdate,  // Pass update callback to detail screen
             ),
           ));
         },
@@ -198,40 +198,9 @@ class _AddLaborScreenState extends State<AddLaborScreen> {
 // Labor Detail Screen
 class LaborDetailScreen extends StatelessWidget {
   final Labor labor;
-  final VoidCallback onUpdate;
+  final VoidCallback onUpdate;  // Callback for notifying changes
 
   const LaborDetailScreen({Key? key, required this.labor, required this.onUpdate}) : super(key: key);
-
-  void _showAddAdvanceSalaryDialog(BuildContext context) {
-    final TextEditingController advanceSalaryController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Advance Salary'),
-          content: TextField(
-            controller: advanceSalaryController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Advance Salary'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                final double? advanceAmount = double.tryParse(advanceSalaryController.text);
-                if (advanceAmount != null && advanceAmount > 0) {
-                  labor.advanceSalary += advanceAmount;
-                  onUpdate();  // Notify update on salary change
-                }
-                Navigator.pop(context);
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -249,14 +218,7 @@ class LaborDetailScreen extends StatelessWidget {
           ),
           const Divider(),
           const Text('Attendance'),
-          Expanded(child: AttendanceCalendar(labor: labor, onUpdate: onUpdate)),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: () => _showAddAdvanceSalaryDialog(context),
-              child: const Text('Add Advance Salary'),
-            ),
-          ),
+          Expanded(child: AttendanceCalendar(labor: labor, onUpdate: onUpdate)),  // Pass the callback to calendar
         ],
       ),
     );
@@ -266,7 +228,7 @@ class LaborDetailScreen extends StatelessWidget {
 // Attendance Calendar Widget
 class AttendanceCalendar extends StatefulWidget {
   final Labor labor;
-  final VoidCallback onUpdate;
+  final VoidCallback onUpdate;  // Callback for notifying updates
 
   const AttendanceCalendar({Key? key, required this.labor, required this.onUpdate}) : super(key: key);
 
@@ -339,6 +301,6 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
     setState(() {
       widget.labor.attendance[dateString] = days;
     });
-    widget.onUpdate();
+    widget.onUpdate();  // Notify HomeScreen to update the list
   }
 }
