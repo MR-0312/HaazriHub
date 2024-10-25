@@ -14,7 +14,8 @@ analyzer:
     prefer_const_constructors: ignore
     sort_child_properties_last: ignore
     unnecessary_string_interpolations: ignore
-    use_super_parameters: ignore ignore ignore ignore
+    unused_import: ignore
+    use_super_parameters: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:
