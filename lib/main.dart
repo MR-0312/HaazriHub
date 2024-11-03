@@ -30,6 +30,23 @@ enum AttendanceType {
   double,
 }
 
+extension AttendanceTypeExtension on AttendanceType {
+  double toDouble() {
+    switch (this) {
+      case AttendanceType.absent:
+        return 0;
+      case AttendanceType.halfDay:
+        return 0.5;
+      case AttendanceType.fullDay:
+        return 1;
+      case AttendanceType.oneAndHalf:
+        return 1.5;
+      case AttendanceType.double:
+        return 2;
+    }
+  }
+}
+
 @HiveType(typeId: 1)
 class Labor extends HiveObject {
   @HiveField(0)
@@ -43,8 +60,6 @@ class Labor extends HiveObject {
   @HiveField(4)
   Map<String, AttendanceType> attendance;
   @HiveField(5)
-  String? phoneNumber;
-  @HiveField(6)
   String department;
 
   Labor({
@@ -53,29 +68,13 @@ class Labor extends HiveObject {
     required this.dailyWage,
     Map<String, double>? advanceSalary,
     Map<String, AttendanceType>? attendance,
-    this.phoneNumber,
     required this.department,
   })  : id = id ?? const Uuid().v4(),
         advanceSalary = advanceSalary ?? {},
         attendance = attendance ?? {};
 
-  double get totalDaysWorked => attendance.values.fold(0, (sum, value) {
-        switch (value) {
-          case AttendanceType.absent:
-            return sum + 0;
-          case AttendanceType.halfDay:
-            return sum + 0.5;
-          case AttendanceType.fullDay:
-            return sum + 1;
-          case AttendanceType.oneAndHalf:
-            return sum + 1.5;
-          case AttendanceType.double:
-            return sum + 2;
-        }
-      });
-
+  double get totalDaysWorked => attendance.values.fold(0, (sum, value) => sum + value.toDouble());
   double get totalAdvanceSalary => advanceSalary.values.fold(0, (sum, value) => sum + value);
-
   double get totalSalary => (dailyWage * totalDaysWorked) - totalAdvanceSalary;
 
   Labor copyWith({
@@ -83,7 +82,6 @@ class Labor extends HiveObject {
     double? dailyWage,
     Map<String, double>? advanceSalary,
     Map<String, AttendanceType>? attendance,
-    String? phoneNumber,
     String? department,
   }) {
     return Labor(
@@ -92,7 +90,6 @@ class Labor extends HiveObject {
       dailyWage: dailyWage ?? this.dailyWage,
       advanceSalary: advanceSalary ?? Map.from(this.advanceSalary),
       attendance: attendance ?? Map.from(this.attendance),
-      phoneNumber: phoneNumber ?? this.phoneNumber,
       department: department ?? this.department,
     );
   }
@@ -102,8 +99,7 @@ class Labor extends HiveObject {
         'name': name,
         'dailyWage': dailyWage,
         'advanceSalary': advanceSalary,
-        'attendance': attendance.map((key, value) => MapEntry(key, value.toString())),
-        'phoneNumber': phoneNumber,
+        'attendance': attendance.map((key, value) => MapEntry(key, value.index)),
         'department': department,
       };
 
@@ -112,8 +108,8 @@ class Labor extends HiveObject {
         name: json['name'],
         dailyWage: json['dailyWage'].toDouble(),
         advanceSalary: Map<String, double>.from(json['advanceSalary']),
-        attendance: Map<String, AttendanceType>.from(json['attendance'].map((key, value) => MapEntry(key, AttendanceType.values.byName(value)))),
-        phoneNumber: json['phoneNumber'],
+        attendance: Map<String, AttendanceType>.from(
+            json['attendance'].map((key, value) => MapEntry(key, AttendanceType.values[value]))),
         department: json['department'],
       );
 }
@@ -125,20 +121,10 @@ class Department extends HiveObject {
   @HiveField(1)
   String name;
 
-  Department({
-    String? id,
-    required this.name,
-  }) : id = id ?? const Uuid().v4();
+  Department({String? id, required this.name}) : id = id ?? const Uuid().v4();
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-      };
-
-  factory Department.fromJson(Map<String, dynamic> json) => Department(
-        id: json['id'],
-        name: json['name'],
-      );
+  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+  factory Department.fromJson(Map<String, dynamic> json) => Department(id: json['id'], name: json['name']);
 }
 
 class LaborNotifier extends StateNotifier<List<Labor>> {
@@ -147,25 +133,14 @@ class LaborNotifier extends StateNotifier<List<Labor>> {
   }
 
   Future<void> _loadLabors() async {
-    try {
-      final box = await Hive.openBox<Labor>('labors');
-      state = box.values.toList();
-    } catch (e) {
-      print('Error loading data: $e');
-      await Hive.deleteBoxFromDisk('labors');
-      await Hive.openBox<Labor>('labors');
-      state = [];
-    }
+    final box = await Hive.openBox<Labor>('labors');
+    state = box.values.toList();
   }
 
   Future<void> _saveLabors() async {
-    try {
-      final box = await Hive.openBox<Labor>('labors');
-      await box.clear();
-      await box.addAll(state);
-    } catch (e) {
-      print('Error saving data: $e');
-    }
+    final box = await Hive.openBox<Labor>('labors');
+    await box.clear();
+    await box.addAll(state);
   }
 
   void addLabor(Labor labor) {
@@ -174,10 +149,7 @@ class LaborNotifier extends StateNotifier<List<Labor>> {
   }
 
   void updateLabor(Labor updatedLabor) {
-    state = [
-      for (final labor in state)
-        if (labor.id == updatedLabor.id) updatedLabor else labor
-    ];
+    state = [for (final labor in state) if (labor.id == updatedLabor.id) updatedLabor else labor];
     _saveLabors();
   }
 
@@ -188,33 +160,51 @@ class LaborNotifier extends StateNotifier<List<Labor>> {
 
   Future<String> importData(String jsonString) async {
     try {
-      final List<dynamic> jsonList = jsonDecode(jsonString);
-      final List<Labor> importedLabors = [];
+      final Map<String, dynamic> jsonData = jsonDecode(jsonString);
+      final List<dynamic> laborJsonList = jsonData['labors'];
+      final List<dynamic> departmentJsonList = jsonData['departments'];
       
-      for (var json in jsonList) {
+      final List<Labor> importedLabors = [];
+      final List<Department> importedDepartments = [];
+      
+      for (var json in laborJsonList) {
         try {
           final labor = Labor.fromJson(json);
           importedLabors.add(labor);
         } catch (e) {
-          print('Error parsing labor: $e');
           return 'Error: Invalid data format for one or more laborers';
+        }
+      }
+
+      for (var json in departmentJsonList) {
+        try {
+          final department = Department.fromJson(json);
+          importedDepartments.add(department);
+        } catch (e) {
+          return 'Error: Invalid data format for one or more departments';
         }
       }
 
       state = importedLabors;
       await _saveLabors();
-      return 'Data imported successfully: ${importedLabors.length} laborers added';
+
+      final departmentNotifier = DepartmentNotifier();
+      departmentNotifier.state = importedDepartments;
+      await departmentNotifier._saveDepartments();
+
+      return 'Data imported successfully: ${importedLabors.length} laborers and ${importedDepartments.length} departments added';
     } catch (e) {
-      print('Error importing data: $e');
-      if (e is FormatException) {
-        return 'Error: Invalid JSON format';
-      }
-      return 'Error importing data: $e';
+      return 'Error importing data: ${e.toString()}';
     }
   }
 
   String exportData() {
-    return jsonEncode(state.map((labor) => labor.toJson()).toList());
+    final departmentNotifier = DepartmentNotifier();
+    final Map<String, dynamic> exportData = {
+      'labors': state.map((labor) => labor.toJson()).toList(),
+      'departments': departmentNotifier.state.map((dept) => dept.toJson()).toList(),
+    };
+    return jsonEncode(exportData);
   }
 }
 
@@ -224,25 +214,14 @@ class DepartmentNotifier extends StateNotifier<List<Department>> {
   }
 
   Future<void> _loadDepartments() async {
-    try {
-      final box = await Hive.openBox<Department>('departments');
-      state = box.values.toList();
-    } catch (e) {
-      print('Error loading departments: $e');
-      await Hive.deleteBoxFromDisk('departments');
-      await Hive.openBox<Department>('departments');
-      state = [];
-    }
+    final box = await Hive.openBox<Department>('departments');
+    state = box.values.toList();
   }
 
   Future<void> _saveDepartments() async {
-    try {
-      final box = await Hive.openBox<Department>('departments');
-      await box.clear();
-      await box.addAll(state);
-    } catch (e) {
-      print('Error saving departments: $e');
-    }
+    final box = await Hive.openBox<Department>('departments');
+    await box.clear();
+    await box.addAll(state);
   }
 
   void addDepartment(Department department) {
@@ -267,43 +246,6 @@ class DepartmentNotifier extends StateNotifier<List<Department>> {
 final laborProvider = StateNotifierProvider<LaborNotifier, List<Labor>>((ref) => LaborNotifier());
 final departmentProvider = StateNotifierProvider<DepartmentNotifier, List<Department>>((ref) => DepartmentNotifier());
 
-class DepartmentAdapter extends TypeAdapter<Department> {
-  @override
-  final int typeId = 2;
-
-  @override
-  Department read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
-    final fields = <int, dynamic>{
-      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
-    };
-    return Department(
-      id: fields[0] as String,
-      name: fields[1] as String,
-    );
-  }
-
-  @override
-  void write(BinaryWriter writer, Department obj) {
-    writer
-      ..writeByte(2)
-      ..writeByte(0)
-      ..write(obj.id)
-      ..writeByte(1)
-      ..write(obj.name);
-  }
-
-  @override
-  int get hashCode => typeId.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DepartmentAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
@@ -323,7 +265,6 @@ class LaborManagementApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.teal,
         fontFamily: GoogleFonts.poppins().fontFamily,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
         scaffoldBackgroundColor: Colors.grey[100],
         appBarTheme: AppBarTheme(
           elevation: 0,
@@ -337,16 +278,12 @@ class LaborManagementApp extends StatelessWidget {
             foregroundColor: Colors.white,
             backgroundColor: Colors.teal.shade400,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         cardTheme: CardTheme(
           elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           color: Colors.white,
         ),
       ),
@@ -366,15 +303,12 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToHome();
-  }
-
-  _navigateToHome() async {
-    await Future.delayed(const Duration(seconds: 2));
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const SafeArea(child: HomeScreen())),
-    );
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SafeArea(child: HomeScreen())),
+      );
+    });
   }
 
   @override
@@ -388,11 +322,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 20),
             Text(
               'Labor Management',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.teal.shade700,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal.shade700),
             ),
           ],
         ),
@@ -468,6 +398,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 case 'exportMonthly':
                   await _exportMonthlyReport(context, ref);
                   break;
+                case 'manageDepartments':
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ManageDepartmentsScreen()),
+                  );
+                  break;
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -479,7 +415,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               const PopupMenuItem<String>(
-                
                 value: 'export',
                 child: ListTile(
                   leading: Icon(Icons.file_download, color: Colors.teal),
@@ -489,8 +424,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const PopupMenuItem<String>(
                 value: 'exportMonthly',
                 child: ListTile(
-                  leading: Icon(Icons.summarize, color: Colors.teal),
+                  leading: Icon(Icons.summarize, color:  Colors.teal),
                   title: Text('Export Monthly Report'),
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'manageDepartments',
+                child: ListTile(
+                  leading: Icon(Icons.business, color: Colors.teal),
+                  title: Text('Manage Departments'),
                 ),
               ),
             ],
@@ -506,15 +448,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 labelText: 'Search',
                 hintText: 'Search by name or department',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
+              onChanged: (value) => setState(() => _searchQuery = value),
             ),
           ),
           Padding(
@@ -530,19 +466,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     DropdownMenuItem(value: 'salary', child: Text('Salary')),
                     DropdownMenuItem(value: 'daysWorked', child: Text('Days Worked')),
                   ],
-                  onChanged: (value) {
-                    setState(() {
-                      _sortBy = value!;
-                    });
-                  },
+                  onChanged: (value) => setState(() => _sortBy = value!),
                 ),
                 IconButton(
                   icon: Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
-                  onPressed: () {
-                    setState(() {
-                      _sortAscending = !_sortAscending;
-                    });
-                  },
+                  onPressed: () => setState(() => _sortAscending = !_sortAscending),
                 ),
               ],
             ),
@@ -833,14 +761,12 @@ class _AddLaborScreenState extends ConsumerState<AddLaborScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _dailyWageController = TextEditingController();
-  final _phoneController = TextEditingController();
   String? _selectedDepartment;
 
   @override
   void dispose() {
     _nameController.dispose();
     _dailyWageController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
@@ -848,12 +774,10 @@ class _AddLaborScreenState extends ConsumerState<AddLaborScreen> {
     if (_formKey.currentState!.validate() && _selectedDepartment != null) {
       final name = _nameController.text.trim();
       final dailyWage = double.parse(_dailyWageController.text);
-      final phone = _phoneController.text.trim();
 
       final newLabor = Labor(
         name: name,
         dailyWage: dailyWage,
-        phoneNumber: phone.isNotEmpty ? phone : null,
         department: _selectedDepartment!,
       );
 
@@ -907,16 +831,6 @@ class _AddLaborScreenState extends ConsumerState<AddLaborScreen> {
                   }
                   return null;
                 },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number (Optional)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone),
-                ),
-                keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -1091,10 +1005,6 @@ class LaborDetailScreen extends ConsumerWidget {
                   Text('Total Days Worked: ${labor.totalDaysWorked}', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text('Department: ${labor.department}', style: Theme.of(context).textTheme.titleMedium),
-                  if (labor.phoneNumber != null) ...[
-                    const SizedBox(height: 8),
-                    Text('Phone: ${labor.phoneNumber}', style: Theme.of(context).textTheme.bodyLarge),
-                  ],
                 ],
               ),
             ),
@@ -1272,7 +1182,6 @@ class _EditLaborScreenState extends ConsumerState<EditLaborScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _dailyWageController;
-  late TextEditingController _phoneController;
   late String _selectedDepartment;
 
   @override
@@ -1280,7 +1189,6 @@ class _EditLaborScreenState extends ConsumerState<EditLaborScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.labor.name);
     _dailyWageController = TextEditingController(text: widget.labor.dailyWage.toString());
-    _phoneController = TextEditingController(text: widget.labor.phoneNumber ?? '');
     _selectedDepartment = widget.labor.department;
   }
 
@@ -1288,7 +1196,6 @@ class _EditLaborScreenState extends ConsumerState<EditLaborScreen> {
   void dispose() {
     _nameController.dispose();
     _dailyWageController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
@@ -1296,12 +1203,10 @@ class _EditLaborScreenState extends ConsumerState<EditLaborScreen> {
     if (_formKey.currentState!.validate()) {
       final name = _nameController.text.trim();
       final dailyWage = double.parse(_dailyWageController.text);
-      final phone = _phoneController.text.trim();
 
       final updatedLabor = widget.labor.copyWith(
         name: name,
         dailyWage: dailyWage,
-        phoneNumber: phone.isNotEmpty ? phone : null,
         department: _selectedDepartment,
       );
 
@@ -1357,16 +1262,6 @@ class _EditLaborScreenState extends ConsumerState<EditLaborScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number (Optional)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _selectedDepartment,
                 decoration: const InputDecoration(
@@ -1416,9 +1311,7 @@ class AnalyticsScreen extends ConsumerWidget {
     final totalAdvanceSalary = laborers.fold(0.0, (sum, labor) => sum + labor.totalAdvanceSalary);
     final totalDaysWorked = laborers.fold(0.0, (sum, labor) => sum + labor.totalDaysWorked);
 
-    // Sort the laborers list by total salary in descending order
-    final sortedLaborers = List<Labor>.from(laborers)
-      ..sort((a, b) => b.totalSalary.compareTo(a.totalSalary));
+    final sortedLaborers = List<Labor>.from(laborers)..sort((a, b) => b.totalSalary.compareTo(a.totalSalary));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Analytics')),
@@ -1480,12 +1373,11 @@ class LaborAnalyticsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final attendanceData = labor.attendance.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
+    final attendanceData = labor.attendance.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
 
     final salaryData = attendanceData.map((entry) {
       final date = DateTime.parse(entry.key);
-      final daysWorked = _getAttendanceValue(entry.value);
+      final daysWorked = entry.value.toDouble();
       final salary = labor.dailyWage * daysWorked;
       return MapEntry(date, salary);
     }).toList();
@@ -1553,7 +1445,7 @@ class LaborAnalyticsScreen extends StatelessWidget {
                   LineChartBarData(
                     spots: attendanceData.map((entry) => FlSpot(
                       DateTime.parse(entry.key).millisecondsSinceEpoch.toDouble(),
-                      _getAttendanceValue(entry.value),
+                      entry.value.toDouble(),
                     )).toList(),
                     isCurved: true,
                     color: Colors.teal,
@@ -1626,19 +1518,98 @@ class LaborAnalyticsScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  double _getAttendanceValue(AttendanceType type) {
-    switch (type) {
-      case AttendanceType.absent:
-        return 0;
-      case AttendanceType.halfDay:
-        return 0.5;
-      case AttendanceType.fullDay:
-        return 1;
-      case AttendanceType.oneAndHalf:
-        return 1.5;
-      case AttendanceType.double:
-        return 2;
-    }
+class ManageDepartmentsScreen extends ConsumerWidget {
+  const ManageDepartmentsScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final departments = ref.watch(departmentProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Manage Departments'),
+      ),
+      body: ListView.builder(
+        itemCount: departments.length,
+        itemBuilder: (context, index) {
+          final department = departments[index];
+          return ListTile(
+            title: Text(department.name),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () {
+                _showDeleteConfirmationDialog(context, ref, department);
+              },
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _showAddDepartmentDialog(context, ref);
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _showAddDepartmentDialog(BuildContext context, WidgetRef ref) {
+    final TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add Department'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: "Enter department name"),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            ElevatedButton(
+              child: const Text('Add'),
+              onPressed: () {
+                if (controller.text.isNotEmpty) {
+                  ref.read(departmentProvider.notifier).addDepartment(Department(name: controller.text));
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, WidgetRef ref, Department department) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: Text('Are you sure you want to delete the department "${department.name}"?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                ref.read(departmentProvider.notifier).deleteDepartment(department.id);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 }
