@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'package:permission_handler/permission_handler.dart';
 
 part 'main.g.dart';
 
@@ -246,20 +245,164 @@ class DepartmentNotifier extends StateNotifier<List<Department>> {
 final laborProvider = StateNotifierProvider<LaborNotifier, List<Labor>>((ref) => LaborNotifier());
 final departmentProvider = StateNotifierProvider<DepartmentNotifier, List<Department>>((ref) => DepartmentNotifier());
 
+class AppLocalizations {
+  AppLocalizations(this.locale);
+
+  final Locale locale;
+
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+  }
+
+  static const _localizedValues = <String, Map<String, String>>{
+    'en': {
+      'appTitle': 'Labor Management',
+      'addLabor': 'Add Labor',
+      'addDepartment': 'Add Department',
+      'name': 'Name',
+      'dailyWage': 'Daily Wage',
+      'department': 'Department',
+      'save': 'Save',
+      'cancel': 'Cancel',
+      'edit': 'Edit',
+      'delete': 'Delete',
+      'confirmDelete': 'Confirm Delete',
+      'areYouSure': 'Are you sure?',
+      'totalSalary': 'Total Salary',
+      'totalAdvance': 'Total Advance',
+      'totalDaysWorked': 'Total Days Worked',
+      'markAttendance': 'Mark Attendance',
+      'addAdvanceSalary': 'Add Advance Salary',
+      'date': 'Date',
+      'amount': 'Amount',
+      'absent': 'Absent',
+      'halfDay': 'Half Day',
+      'fullDay': 'Full Day',
+      'oneAndHalfDay': '1.5 Day',
+      'doubleDay': 'Double Day',
+      'importData': 'Import Data',
+      'exportData': 'Export Data',
+      'manageDepartments': 'Manage Departments',
+      'selectLanguage': 'Select Language',
+      'welcome': 'Welcome to Labor Management',
+      'noDepartments': 'No departments added yet!',
+      'noLaborers': 'No laborers in',
+      'changeLanguage': 'Change Language',
+    },
+    'gu': {
+      'appTitle': 'મજૂર વ્યવસ્થાપન',
+      'addLabor': 'મજૂર ઉમેરો',
+      'addDepartment': 'વિભાગ ઉમેરો',
+      'name': 'નામ',
+      'dailyWage': 'દૈનિક વેતન',
+      'department': 'વિભાગ',
+      'save': 'સાચવો',
+      'cancel': 'રદ કરો',
+      'edit': 'સંપાદિત કરો',
+      'delete': 'કાઢી નાખો',
+      'confirmDelete': 'કાઢી નાખવાની પુષ્ટિ કરો',
+      'areYouSure': 'શું તમને ખાતરી છે?',
+      'totalSalary': 'કુલ પગાર',
+      'totalAdvance': 'કુલ એડવાન્સ',
+      'totalDaysWorked': 'કુલ કામ કરેલા દિવસો',
+      'markAttendance': 'હાજરી નોંધો',
+      'addAdvanceSalary': 'એડવાન્સ પગાર ઉમેરો',
+      'date': 'તારીખ',
+      'amount': 'રકમ',
+      'absent': 'ગેરહાજર',
+      'halfDay': 'અર્ધ દિવસ',
+      'fullDay': 'પૂર્ણ દિવસ',
+      'oneAndHalfDay': '1.5 દિવસ',
+      'doubleDay': 'બમણો દિવસ',
+      'importData': 'ડેટા આયાત કરો',
+      'exportData': 'ડેટા નિકાસ કરો',
+      'manageDepartments': 'વિભાગો સંચાલિત કરો',
+      'selectLanguage': 'ભાષા પસંદ કરો',
+      'welcome': 'મજૂર વ્યવસ્થાપનમાં આપનું સ્વાગત છે',
+      'noDepartments': 'હજુ સુધી કોઈ વિભાગો ઉમેર્યા નથી!',
+      'noLaborers': 'કોઈ મજૂરો નથી',
+      'changeLanguage': 'ભાષા બદલો',
+    },
+  };
+
+  String get appTitle => _localizedValues[locale.languageCode]!['appTitle']!;
+  String get addLabor => _localizedValues[locale.languageCode]!['addLabor']!;
+  String get addDepartment => _localizedValues[locale.languageCode]!['addDepartment']!;
+  String get name => _localizedValues[locale.languageCode]!['name']!;
+  String get dailyWage => _localizedValues[locale.languageCode]!['dailyWage']!;
+  String get department => _localizedValues[locale.languageCode]!['department']!;
+  String get save => _localizedValues[locale.languageCode]!['save']!;
+  String get cancel => _localizedValues[locale.languageCode]!['cancel']!;
+  String get edit => _localizedValues[locale.languageCode]!['edit']!;
+  String get delete => _localizedValues[locale.languageCode]!['delete']!;
+  String get confirmDelete => _localizedValues[locale.languageCode]!['confirmDelete']!;
+  String get areYouSure => _localizedValues[locale.languageCode]!['areYouSure']!;
+  String get totalSalary => _localizedValues[locale.languageCode]!['totalSalary']!;
+  String get totalAdvance => _localizedValues[locale.languageCode]!['totalAdvance']!;
+  
+  String get totalDaysWorked => _localizedValues[locale.languageCode]!['totalDaysWorked']!;
+  String get markAttendance => _localizedValues[locale.languageCode]!['markAttendance']!;
+  String get addAdvanceSalary => _localizedValues[locale.languageCode]!['addAdvanceSalary']!;
+  String get date => _localizedValues[locale.languageCode]!['date']!;
+  String get amount => _localizedValues[locale.languageCode]!['amount']!;
+  String get absent => _localizedValues[locale.languageCode]!['absent']!;
+  String get halfDay => _localizedValues[locale.languageCode]!['halfDay']!;
+  String get fullDay => _localizedValues[locale.languageCode]!['fullDay']!;
+  String get oneAndHalfDay => _localizedValues[locale.languageCode]!['oneAndHalfDay']!;
+  String get doubleDay => _localizedValues[locale.languageCode]!['doubleDay']!;
+  String get importData => _localizedValues[locale.languageCode]!['importData']!;
+  String get exportData => _localizedValues[locale.languageCode]!['exportData']!;
+  String get manageDepartments => _localizedValues[locale.languageCode]!['manageDepartments']!;
+  String get selectLanguage => _localizedValues[locale.languageCode]!['selectLanguage']!;
+  String get welcome => _localizedValues[locale.languageCode]!['welcome']!;
+  String get noDepartments => _localizedValues[locale.languageCode]!['noDepartments']!;
+  String get noLaborers => _localizedValues[locale.languageCode]!['noLaborers']!;
+  String get changeLanguage => _localizedValues[locale.languageCode]!['changeLanguage']!;
+}
+
+class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+  const AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => ['en', 'gu'].contains(locale.languageCode);
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async {
+    return AppLocalizations(locale);
+  }
+
+  @override
+  bool shouldReload(AppLocalizationsDelegate old) => false;
+}
+
+final languageProvider = StateProvider<Locale>((ref) => const Locale('en', ''));
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(LaborAdapter());
   Hive.registerAdapter(AttendanceTypeAdapter());
   Hive.registerAdapter(DepartmentAdapter());
-  runApp(const ProviderScope(child: LaborManagementApp()));
+  
+  final prefs = await SharedPreferences.getInstance();
+  final String? languageCode = prefs.getString('language');
+  final initialLocale = languageCode != null ? Locale(languageCode) : const Locale('en', '');
+  
+  runApp(ProviderScope(
+    overrides: [
+      languageProvider.overrideWith((ref) => initialLocale),
+    ],
+    child: const LaborManagementApp(),
+  ));
 }
 
-class LaborManagementApp extends StatelessWidget {
+class LaborManagementApp extends ConsumerWidget {
   const LaborManagementApp({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentLocale = ref.watch(languageProvider);
+
     return MaterialApp(
       title: 'Labor Management',
       theme: ThemeData(
@@ -287,6 +430,14 @@ class LaborManagementApp extends StatelessWidget {
           color: Colors.white,
         ),
       ),
+      supportedLocales: const [Locale('en', ''), Locale('gu', '')],
+      locale: currentLocale,
+      localizationsDelegates: const [
+        AppLocalizationsDelegate(),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const SplashScreen(),
     );
   }
@@ -303,12 +454,14 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const SafeArea(child: HomeScreen())),
-      );
-    });
+    _navigateToHome();
+  }
+
+  Future<void> _navigateToHome() async {
+    await Future.delayed(const Duration(seconds: 2));
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
+    );
   }
 
   @override
@@ -321,8 +474,9 @@ class _SplashScreenState extends State<SplashScreen> {
             Image.asset('assets/icon/icon.png', width: 150, height: 150),
             const SizedBox(height: 20),
             Text(
-              'Labor Management',
+              AppLocalizations.of(context).welcome,
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal.shade700),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -331,196 +485,130 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  String _searchQuery = '';
-  String _sortBy = 'name';
-  bool _sortAscending = true;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final laborers = ref.watch(laborProvider);
     final departments = ref.watch(departmentProvider);
 
-    List<Labor> filteredAndSortedLaborers = laborers
-        .where((labor) =>
-            labor.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            labor.department.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-
-    filteredAndSortedLaborers.sort((a, b) {
-      int comparison;
-      switch (_sortBy) {
-        case 'name':
-          comparison = a.name.compareTo(b.name);
-          break;
-        case 'department':
-          comparison = a.department.compareTo(b.department);
-          break;
-        case 'salary':
-          comparison = a.totalSalary.compareTo(b.totalSalary);
-          break;
-        case 'daysWorked':
-          comparison = a.totalDaysWorked.compareTo(b.totalDaysWorked);
-          break;
-        default:
-          comparison = 0;
-      }
-      return _sortAscending ? comparison : -comparison;
-    });
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Labor Management'),
+        title: Text(AppLocalizations.of(context).appTitle),
         actions: [
           IconButton(
-            icon: const Icon(Icons.analytics),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AnalyticsScreen()),
-            ),
+            icon: const Icon(Icons.language),
+            onPressed: () => _showLanguageSelectionDialog(context, ref),
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              switch (value) {
-                case 'import':
-                  await _importData(context, ref);
-                  break;
-                case 'export':
-                  await _exportData(context, ref);
-                  break;
-                case 'exportMonthly':
-                  await _exportMonthlyReport(context, ref);
-                  break;
-                case 'manageDepartments':
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ManageDepartmentsScreen()),
-                  );
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'import',
-                child: ListTile(
-                  leading: Icon(Icons.file_upload, color: Colors.teal),
-                  title: Text('Import Data'),
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'export',
-                child: ListTile(
-                  leading: Icon(Icons.file_download, color: Colors.teal),
-                  title: Text('Export Data'),
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'exportMonthly',
-                child: ListTile(
-                  leading: Icon(Icons.summarize, color:  Colors.teal),
-                  title: Text('Export Monthly Report'),
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'manageDepartments',
-                child: ListTile(
-                  leading: Icon(Icons.business, color: Colors.teal),
-                  title: Text('Manage Departments'),
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => _showMenu(context, ref),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: InputDecoration(
-                labelText: 'Search',
-                hintText: 'Search by name or department',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      body: departments.isEmpty
+          ? Center(
+              child: Text(
+                AppLocalizations.of(context).noDepartments,
+                style: TextStyle(fontSize: 18, color: Colors.teal.shade700),
               ),
-              onChanged: (value) => setState(() => _searchQuery = value),
+            )
+          : ListView.builder(
+              itemCount: departments.length,
+              itemBuilder: (context, index) {
+                final department = departments[index];
+                final departmentLaborers = laborers.where((l) => l.department == department.name).toList();
+                return ExpansionTile(
+                  title: Text(department.name, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal.shade700)),
+                  children: departmentLaborers.isEmpty
+                      ? [
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text('${AppLocalizations.of(context).noLaborers} ${department.name}', style: TextStyle(color: Colors.grey[600])),
+                          )
+                        ]
+                      : departmentLaborers.map((labor) => LaborCard(labor: labor)).toList(),
+                );
+              },
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Row(
-              children: [
-                const Text('Sort by: '),
-                DropdownButton<String>(
-                  value: _sortBy,
-                  items: [
-                    DropdownMenuItem(value: 'name', child: Text('Name')),
-                    DropdownMenuItem(value: 'department', child: Text('Department')),
-                    DropdownMenuItem(value: 'salary', child: Text('Salary')),
-                    DropdownMenuItem(value: 'daysWorked', child: Text('Days Worked')),
-                  ],
-                  onChanged: (value) => setState(() => _sortBy = value!),
-                ),
-                IconButton(
-                  icon: Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
-                  onPressed: () => setState(() => _sortAscending = !_sortAscending),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: filteredAndSortedLaborers.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.person_add, size: 64, color: Colors.teal.shade300),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchQuery.isEmpty
-                              ? 'No laborers added yet!'
-                              : 'No laborers found matching "$_searchQuery"',
-                          style: TextStyle(fontSize: 18, color: Colors.teal.shade700),
-                        ),
-                        const SizedBox(height: 16),
-                        if (_searchQuery.isEmpty)
-                          ElevatedButton.icon(
-                            onPressed: () => _showAddOptions(context, ref),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Labor or Department'),
-                          ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: departments.length,
-                    itemBuilder: (context, index) {
-                      final department = departments[index];
-                      final departmentLaborers = filteredAndSortedLaborers.where((l) => l.department == department.name).toList();
-                      if (departmentLaborers.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-                      return ExpansionTile(
-                        title: Text(department.name, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal.shade700)),
-                        children: departmentLaborers.map((labor) => LaborCard(labor: labor)).toList(),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddOptions(context, ref),
         child: const Icon(Icons.add),
         backgroundColor: Colors.teal.shade400,
       ),
+    );
+  }
+
+  void _showLanguageSelectionDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(AppLocalizations.of(context).selectLanguage),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('English'),
+                onTap: () => _changeLanguage(context, ref, const Locale('en', '')),
+              ),
+              ListTile(
+                title: const Text('ગુજરાતી (Gujarati)'),
+                onTap: () => _changeLanguage(context, ref, const Locale('gu', '')),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _changeLanguage(BuildContext context, WidgetRef ref, Locale newLocale) async {
+    Navigator.of(context).pop();
+    ref.read(languageProvider.notifier).state = newLocale;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', newLocale.languageCode);
+  }
+
+  void _showMenu(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.file_upload),
+                title: Text(AppLocalizations.of(context).importData),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _importData(context, ref);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.file_download),
+                title: Text(AppLocalizations.of(context).exportData),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _exportData(context, ref);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.business),
+                title: Text(AppLocalizations.of(context).manageDepartments),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ManageDepartmentsScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -533,7 +621,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: <Widget>[
               ListTile(
                 leading: const Icon(Icons.person_add),
-                title: const Text('Add Labor'),
+                title: Text(AppLocalizations.of(context).addLabor),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -544,7 +632,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.business),
-                title: const Text('Add Department'),
+                title: Text(AppLocalizations.of(context).addDepartment),
                 onTap: () {
                   Navigator.pop(context);
                   _showAddDepartmentDialog(context, ref);
@@ -563,18 +651,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Add Department'),
+          title: Text(AppLocalizations.of(context).addDepartment),
           content: TextField(
             controller: controller,
-            decoration: const InputDecoration(hintText: "Enter department name"),
+            decoration: InputDecoration(hintText: AppLocalizations.of(context).name),
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context).cancel),
               onPressed: () => Navigator.of(context).pop(),
             ),
             ElevatedButton(
-              child: const Text('Add'),
+              child: Text(AppLocalizations.of(context).save),
               onPressed: () {
                 if (controller.text.isNotEmpty) {
                   ref.read(departmentProvider.notifier).addDepartment(Department(name: controller.text));
@@ -627,7 +715,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final status = await Permission.storage.request();
       if (status.isGranted) {
         final data = ref.read(laborProvider.notifier).exportData();
-        final file = File('/storage/emulated/0/Download/labor_data.json');
+        final directory = await getExternalStorageDirectory();
+        final file = File('${directory!.path}/labor_data.json');
         await file.writeAsString(data);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -643,61 +732,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error exporting data: $e')),
-      );
-    }
-  }
-
-  Future<void> _exportMonthlyReport(BuildContext context, WidgetRef ref) async {
-    try {
-      final status = await Permission.storage.request();
-      if (status.isGranted) {
-        final laborers = ref.read(laborProvider);
-        final pdf = pw.Document();
-
-        pdf.addPage(
-          pw.Page(
-            build: (pw.Context context) {
-              return pw.Column(
-                children: [
-                  pw.Header(
-                    level: 0,
-                    child: pw.Text('Monthly Labor Report'),
-                  ),
-                  pw.Table.fromTextArray(
-                    context: context,
-                    data: <List<String>>[
-                      <String>['Name', 'Department', 'Total Days', 'Total Salary', 'Advance Salary'],
-                      ...laborers.map((labor) => [
-                        labor.name,
-                        labor.department,
-                        labor.totalDaysWorked.toStringAsFixed(1),
-                        labor.totalSalary.toStringAsFixed(2),
-                        labor.totalAdvanceSalary.toStringAsFixed(2),
-                      ]),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
-        );
-
-        final file = File('/storage/emulated/0/Download/monthly_report.pdf');
-        await file.writeAsBytes(await pdf.save());
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Monthly report exported to ${file.path}')),
-        );
-
-        await OpenFile.open(file.path);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permission denied to access storage')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error exporting monthly report: $e')),
       );
     }
   }
@@ -725,8 +759,8 @@ class LaborCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Daily Wage: ₹${labor.dailyWage.toStringAsFixed(2)}'),
-            Text('Department: ${labor.department}'),
+            Text('${AppLocalizations.of(context).dailyWage}: ₹${labor.dailyWage.toStringAsFixed(2)}'),
+            Text('${AppLocalizations.of(context).department}: ${labor.department}'),
           ],
         ),
         trailing: Column(
@@ -737,7 +771,7 @@ class LaborCard extends StatelessWidget {
               '₹${labor.totalSalary.toStringAsFixed(2)}',
               style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
             ),
-            Text('${labor.totalDaysWorked.toStringAsFixed(1)} days', style: const TextStyle(fontSize: 12)),
+            Text('${labor.totalDaysWorked.toStringAsFixed(1)} ${AppLocalizations.of(context).totalDaysWorked}', style: const TextStyle(fontSize: 12)),
           ],
         ),
         onTap: () {
@@ -791,7 +825,7 @@ class _AddLaborScreenState extends ConsumerState<AddLaborScreen> {
     final departments = ref.watch(departmentProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add New Labor')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).addLabor)),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -800,10 +834,10 @@ class _AddLaborScreenState extends ConsumerState<AddLaborScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).name,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.person),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -815,11 +849,11 @@ class _AddLaborScreenState extends ConsumerState<AddLaborScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _dailyWageController,
-                decoration: const InputDecoration(
-                  labelText: 'Daily Wage',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).dailyWage,
+                  border: const OutlineInputBorder(),
                   prefixText: '₹ ',
-                  prefixIcon: Icon(Icons.money),
+                  prefixIcon: const Icon(Icons.money),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
@@ -835,10 +869,10 @@ class _AddLaborScreenState extends ConsumerState<AddLaborScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _selectedDepartment,
-                decoration: const InputDecoration(
-                  labelText: 'Department',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.business),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).department,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.business),
                 ),
                 items: departments.map((dept) {
                   return DropdownMenuItem(
@@ -861,7 +895,7 @@ class _AddLaborScreenState extends ConsumerState<AddLaborScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _addLabor,
-                child: const Text('Add Labor'),
+                child: Text(AppLocalizations.of(context).save),
               ),
             ],
           ),
@@ -886,23 +920,23 @@ class LaborDetailScreen extends ConsumerWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Add Advance Salary'),
+              title: Text(AppLocalizations.of(context).addAdvanceSalary),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: advanceSalaryController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Advance Salary',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).amount,
+                      border: const OutlineInputBorder(),
                       prefixText: '₹ ',
                     ),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      const Text('Date: '),
+                      Text('${AppLocalizations.of(context).date}: '),
                       TextButton(
                         onPressed: () async {
                           final DateTime? picked = await showDatePicker(
@@ -926,7 +960,7 @@ class LaborDetailScreen extends ConsumerWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context).cancel),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -940,7 +974,7 @@ class LaborDetailScreen extends ConsumerWidget {
                     }
                     Navigator.pop(context);
                   },
-                  child: const Text('Add'),
+                  child: Text(AppLocalizations.of(context).save),
                 ),
               ],
             );
@@ -968,13 +1002,6 @@ class LaborDetailScreen extends ConsumerWidget {
         title: Text(labor.name),
         actions: [
           IconButton(
-            icon: const Icon(Icons.analytics),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => LaborAnalyticsScreen(labor: labor)),
-            ),
-          ),
-          IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () => Navigator.push(
               context,
@@ -996,15 +1023,15 @@ class LaborDetailScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Daily Wage: ₹${labor.dailyWage}', style: Theme.of(context).textTheme.titleLarge),
+                  Text('${AppLocalizations.of(context).dailyWage}: ₹${labor.dailyWage}', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 8),
-                  Text('Total Advance Salary: ₹${labor.totalAdvanceSalary}', style: Theme.of(context).textTheme.titleMedium),
+                  Text('${AppLocalizations.of(context).totalAdvance}: ₹${labor.totalAdvanceSalary}', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Text('Total Salary: ₹${labor.totalSalary}', style: Theme.of(context).textTheme.titleMedium),
+                  Text('${AppLocalizations.of(context).totalSalary}: ₹${labor.totalSalary}', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Text('Total Days Worked: ${labor.totalDaysWorked}', style: Theme.of(context).textTheme.titleMedium),
+                  Text('${AppLocalizations.of(context).totalDaysWorked}: ${labor.totalDaysWorked}', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Text('Department: ${labor.department}', style: Theme.of(context).textTheme.titleMedium),
+                  Text('${AppLocalizations.of(context).department}: ${labor.department}', style: Theme.of(context).textTheme.titleMedium),
                 ],
               ),
             ),
@@ -1016,7 +1043,7 @@ class LaborDetailScreen extends ConsumerWidget {
               ElevatedButton.icon(
                 onPressed: () => _showMarkAttendanceDialog(context, ref, labor),
                 icon: const Icon(Icons.calendar_today),
-                label: const Text('Mark Attendance'),
+                label: Text(AppLocalizations.of(context).markAttendance),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
@@ -1025,7 +1052,7 @@ class LaborDetailScreen extends ConsumerWidget {
               ElevatedButton.icon(
                 onPressed: () => _showAddAdvanceSalaryDialog(context, ref, labor),
                 icon: const Icon(Icons.money),
-                label: const Text('Add Advance Salary'),
+                label: Text(AppLocalizations.of(context).addAdvanceSalary),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
@@ -1043,17 +1070,17 @@ class LaborDetailScreen extends ConsumerWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirm Deletion'),
-          content: Text('Are you sure you want to delete ${labor.name}?'),
+          title: Text(AppLocalizations.of(context).confirmDelete),
+          content: Text('${AppLocalizations.of(context).areYouSure} ${labor.name}?'),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context).cancel),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              child: Text(AppLocalizations.of(context).delete, style: const TextStyle(color: Colors.red)),
               onPressed: () {
                 ref.read(laborProvider.notifier).deleteLabor(labor.id);
                 Navigator.of(context).pop();
@@ -1090,13 +1117,13 @@ class _AttendanceDialogState extends State<AttendanceDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Mark Attendance'),
+      title: Text(AppLocalizations.of(context).markAttendance),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              const Text('Date: '),
+              Text('${AppLocalizations.of(context).date}: '),
               TextButton(
                 onPressed: () async {
                   final DateTime? picked = await showDatePicker(
@@ -1121,7 +1148,7 @@ class _AttendanceDialogState extends State<AttendanceDialog> {
             runSpacing: 8,
             children: AttendanceType.values.map((type) {
               return ChoiceChip(
-                label: Text(_getAttendanceLabel(type)),
+                label: Text(_getAttendanceLabel(context, type)),
                 selected: selectedAttendance == type,
                 onSelected: (selected) {
                   setState(() {
@@ -1136,7 +1163,7 @@ class _AttendanceDialogState extends State<AttendanceDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(AppLocalizations.of(context).cancel),
         ),
         ElevatedButton(
           onPressed: selectedAttendance == null ? null : () {
@@ -1147,24 +1174,24 @@ class _AttendanceDialogState extends State<AttendanceDialog> {
             widget.onSave(updatedLabor);
             Navigator.pop(context);
           },
-          child: const Text('Save'),
+          child: Text(AppLocalizations.of(context).save),
         ),
       ],
     );
   }
 
-  String _getAttendanceLabel(AttendanceType type) {
+  String _getAttendanceLabel(BuildContext context, AttendanceType type) {
     switch (type) {
       case AttendanceType.absent:
-        return 'Absent';
+        return AppLocalizations.of(context).absent;
       case AttendanceType.halfDay:
-        return 'Half Day';
+        return AppLocalizations.of(context).halfDay;
       case AttendanceType.fullDay:
-        return 'Full Day';
+        return AppLocalizations.of(context).fullDay;
       case AttendanceType.oneAndHalf:
-        return '1.5 Day';
+        return AppLocalizations.of(context).oneAndHalfDay;
       case AttendanceType.double:
-        return 'Double Day';
+        return AppLocalizations.of(context).doubleDay;
     }
   }
 }
@@ -1220,7 +1247,7 @@ class _EditLaborScreenState extends ConsumerState<EditLaborScreen> {
     final departments = ref.watch(departmentProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Labor')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).edit)),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -1229,10 +1256,10 @@ class _EditLaborScreenState extends ConsumerState<EditLaborScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).name,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.person),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -1244,11 +1271,11 @@ class _EditLaborScreenState extends ConsumerState<EditLaborScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _dailyWageController,
-                decoration: const InputDecoration(
-                  labelText: 'Daily Wage',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).dailyWage,
+                  border: const OutlineInputBorder(),
                   prefixText: '₹ ',
-                  prefixIcon: Icon(Icons.money),
+                  prefixIcon: const Icon(Icons.money),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
@@ -1264,10 +1291,10 @@ class _EditLaborScreenState extends ConsumerState<EditLaborScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _selectedDepartment,
-                decoration: const InputDecoration(
-                  labelText: 'Department',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.business),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).department,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.business),
                 ),
                 items: departments.map((dept) {
                   return DropdownMenuItem(
@@ -1290,231 +1317,11 @@ class _EditLaborScreenState extends ConsumerState<EditLaborScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _updateLabor,
-                child: const Text('Update Labor'),
+                child: Text(AppLocalizations.of(context).save),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class AnalyticsScreen extends ConsumerWidget {
-  const AnalyticsScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final laborers = ref.watch(laborProvider);
-
-    final totalSalaryPaid = laborers.fold(0.0, (sum, labor) => sum + labor.totalSalary);
-    final totalAdvanceSalary = laborers.fold(0.0, (sum, labor) => sum + labor.totalAdvanceSalary);
-    final totalDaysWorked = laborers.fold(0.0, (sum, labor) => sum + labor.totalDaysWorked);
-
-    final sortedLaborers = List<Labor>.from(laborers)..sort((a, b) => b.totalSalary.compareTo(a.totalSalary));
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Analytics')),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Total Salary Paid: ₹${totalSalaryPaid.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 8),
-                  Text('Total Advance Salary: ₹${totalAdvanceSalary.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text('Total Days Worked: ${totalDaysWorked.toStringAsFixed(1)}', style: Theme.of(context).textTheme.titleMedium),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text('Salary Distribution', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 300,
-            child: PieChart(
-              PieChartData(
-                sections: laborers.map((labor) => PieChartSectionData(
-                  color: Colors.primaries[laborers.indexOf(labor) % Colors.primaries.length],
-                  value: labor.totalSalary,
-                  title: '${labor.name}\n₹${labor.totalSalary.toStringAsFixed(0)}',
-                  radius: 100,
-                  titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                )).toList(),
-                sectionsSpace: 2,
-                centerSpaceRadius: 40,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text('Top Earners', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ...sortedLaborers.take(5).map((labor) => ListTile(
-            title: Text(labor.name),
-            subtitle: Text(labor.department),
-            trailing: Text('₹${labor.totalSalary.toStringAsFixed(2)}'),
-          )),
-        ],
-      ),
-    );
-  }
-}
-
-class LaborAnalyticsScreen extends StatelessWidget {
-  final Labor labor;
-
-  const LaborAnalyticsScreen({Key? key, required this.labor}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final attendanceData = labor.attendance.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
-
-    final salaryData = attendanceData.map((entry) {
-      final date = DateTime.parse(entry.key);
-      final daysWorked = entry.value.toDouble();
-      final salary = labor.dailyWage * daysWorked;
-      return MapEntry(date, salary);
-    }).toList();
-
-    return Scaffold(
-      appBar: AppBar(title: Text('${labor.name} Analytics')),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Total Days Worked: ${labor.totalDaysWorked.toStringAsFixed(1)}', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text('Total Salary: ₹${labor.totalSalary.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text('Total Advance Salary: ₹${labor.totalAdvanceSalary.toStringAsFixed(2)}', style: Theme.of(context).textTheme.titleMedium),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text('Attendance History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 300,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(show: true, drawVerticalLine: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      getTitlesWidget: (value, meta) {
-                        return Text(value.toStringAsFixed(1));
-                      },
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      getTitlesWidget: (value, meta) {
-                        final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(DateFormat('dd/MM').format(date), style: const TextStyle(fontSize: 10)),
-                        );
-                      },
-                    ),
-                  ),
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: true),
-                minX: attendanceData.isNotEmpty ? DateTime.parse(attendanceData.first.key).millisecondsSinceEpoch.toDouble() : 0,
-                maxX: attendanceData.isNotEmpty ? DateTime.parse(attendanceData.last.key).millisecondsSinceEpoch.toDouble() : 0,
-                minY: 0,
-                maxY: 2,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: attendanceData.map((entry) => FlSpot(
-                      DateTime.parse(entry.key).millisecondsSinceEpoch.toDouble(),
-                      entry.value.toDouble(),
-                    )).toList(),
-                    isCurved: true,
-                    color: Colors.teal,
-                    barWidth: 4,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(show: true),
-                    belowBarData: BarAreaData(show: true, color: Colors.teal.withOpacity(0.2)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text('Salary History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 300,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(show: true, drawVerticalLine: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 60,
-                      getTitlesWidget: (value, meta) {
-                        return Text('₹${value.toStringAsFixed(0)}');
-                      },
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      getTitlesWidget: (value, meta) {
-                        final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(DateFormat('dd/MM').format(date), style: const TextStyle(fontSize: 10)),
-                        );
-                      },
-                    ),
-                  ),
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: true),
-                minX: salaryData.isNotEmpty ? salaryData.first.key.millisecondsSinceEpoch.toDouble() : 0,
-                maxX: salaryData.isNotEmpty ? salaryData.last.key.millisecondsSinceEpoch.toDouble() : 0,
-                minY: 0,
-                maxY: salaryData.isNotEmpty ? salaryData.map((e) => e.value).reduce((a, b) => a > b ? a : b) : 0,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: salaryData.map((entry) => FlSpot(
-                      entry.key.millisecondsSinceEpoch.toDouble(),
-                      entry.value,
-                    )).toList(),
-                    isCurved: true,
-                    color: Colors.green,
-                    barWidth: 4,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(show: true),
-                    belowBarData: BarAreaData(show: true, color: Colors.green.withOpacity(0.2)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1529,7 +1336,7 @@ class ManageDepartmentsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Departments'),
+        title: Text(AppLocalizations.of(context).manageDepartments),
       ),
       body: ListView.builder(
         itemCount: departments.length,
@@ -1561,18 +1368,18 @@ class ManageDepartmentsScreen extends ConsumerWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Add Department'),
+          title: Text(AppLocalizations.of(context).addDepartment),
           content: TextField(
             controller: controller,
-            decoration: const InputDecoration(hintText: "Enter department name"),
+            decoration: InputDecoration(hintText: AppLocalizations.of(context).name),
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context).cancel),
               onPressed: () => Navigator.of(context).pop(),
             ),
             ElevatedButton(
-              child: const Text('Add'),
+              child: Text(AppLocalizations.of(context).save),
               onPressed: () {
                 if (controller.text.isNotEmpty) {
                   ref.read(departmentProvider.notifier).addDepartment(Department(name: controller.text));
@@ -1591,17 +1398,17 @@ class ManageDepartmentsScreen extends ConsumerWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirm Deletion'),
-          content: Text('Are you sure you want to delete the department "${department.name}"?'),
+          title: Text(AppLocalizations.of(context).confirmDelete),
+          content: Text('${AppLocalizations.of(context).areYouSure} "${department.name}"?'),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context).cancel),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              child: Text(AppLocalizations.of(context).delete, style: const TextStyle(color: Colors.red)),
               onPressed: () {
                 ref.read(departmentProvider.notifier).deleteDepartment(department.id);
                 Navigator.of(context).pop();
